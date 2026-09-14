@@ -54,7 +54,7 @@ class Config:
 
 def read_config():
     try:
-        data = tomllib.loads(ensure_config().read_text())
+        data = tomllib.loads(ensure_config().read_text(encoding='utf-8'))
         translation = data.get('translation', 'CSB')
         command = data['bible_command']
         if not isinstance(translation, str) or not translation.strip():
@@ -68,5 +68,5 @@ def read_config():
             if type(data.get(option, option == 'ascii')) is not bool:
                 raise ValueError(f'{option} must be true or false')
         return Config(translation, command, data.get('verse_numbers', False), data.get('ascii', True))
-    except (OSError, KeyError, tomllib.TOMLDecodeError) as error:
+    except (OSError, UnicodeError, KeyError, tomllib.TOMLDecodeError) as error:
         raise ValueError(f'Unable to read config: {error}') from error

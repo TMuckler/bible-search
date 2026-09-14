@@ -1,3 +1,16 @@
+# Bug review follow-up
+
+22 tests pass. New coverage verifies running backend cancellation and process
+termination, timeout cleanup, clipboard ordering, discarded stale responses,
+unexpected clipboard errors, invalid UTF-8 configuration, rollback after Lua
+validation or partial-edit failures, offline configuration removal, and
+reinstalling from the installed directory.
+
+Live checks passed for John 1:1-3 with its CSB citation, Escape terminating a
+20-second test backend while preserving the clipboard, and running install.sh
+from the installed application directory. Test configuration and clipboard were
+restored, and the resident app restarted successfully.
+
 # Citation formatting update
 
 Clipboard output now consists of the backend passage (without trailing whitespace),

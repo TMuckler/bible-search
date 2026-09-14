@@ -65,6 +65,11 @@ class CoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             read_config()
 
+    def test_invalid_utf8_reports_config_error(self):
+        self.path.write_bytes(b'\xff')
+        with self.assertRaisesRegex(LookupError, 'Check config.toml'):
+            lookup('John 1:1')
+
     def test_clipboard_bytes(self):
         payload = b'Verse\n\n'
         with patch('bible_search.clipboard.subprocess.run', return_value=subprocess.CompletedProcess([], 0)) as run:

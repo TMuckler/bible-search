@@ -49,7 +49,8 @@ with pip into a user-owned virtual environment, without sudo.
 
 Installs into `$XDG_DATA_HOME/bible-search` (default `~/.local/share/bible-search`)
 with an executable at `~/.local/bin/bible-search`. It backs up user Lua files before
-editing, uses marked blocks to avoid duplicates, configures Alt+Space and login
+editing, restores both Lua files if their validation fails, uses marked blocks
+to avoid duplicates, configures Alt+Space and login
 autostart, reloads and validates Hyprland, checks the backend and clipboard
 connection, and starts/verifies the resident process. Re-running preserves your
 TOML configuration. `--bible` applies only when creating a new configuration.
@@ -91,7 +92,9 @@ Type `John 3:16`, `John 1:1-7`, `1 John 4:7-12`, `Psalm 23`, `Genesis 1`,
 or `Romans 8:28-39`, then press Enter once. Wait for the window to disappear,
 then paste. The passage is followed by a blank line and its citation, for example
 `(John 1:1 CSB)` or `(John 1:1-3 CSB)`. Verse numbers are omitted by default.
-Paragraph breaks within the passage are preserved. Escape cancels and clears. Alt+Space again toggles closed. Unsubmitted
+Paragraph breaks within the passage are preserved. Escape cancels the running
+backend and clears the input. A clipboard transfer already handed to Wayland
+cannot be undone; queued transfers from cancelled searches are discarded. Alt+Space again toggles closed. Unsubmitted
 input is dismissed on focus loss. Duplicate Enter presses during a request are
 ignored. Errors appear below the input; correct the reference and retry.
 

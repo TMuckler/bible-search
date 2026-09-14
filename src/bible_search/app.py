@@ -14,6 +14,7 @@ from gi.repository import Gdk, Gio, GLib, Gtk
 from .backend import LookupError, lookup
 from .clipboard import copy_passage
 from .config import xdg_path
+from .process import Cancelled
 
 APP_ID = 'io.github.bible_search.Launcher'
 
@@ -25,6 +26,8 @@ class BibleSearch(Gtk.Application):
         self.busy = False
         self.generation = 0
         self.had_focus = False
+        self.cancel = threading.Event()
+        self.clipboard_lock = threading.Lock()
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -34,6 +37,7 @@ class BibleSearch(Gtk.Application):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, self.stop)
 
     def stop(self):
+        self.cancel.set()
         self.generation += 1
         self.quit()
         return GLib.SOURCE_REMOVE
@@ -100,7 +104,8 @@ class BibleSearch(Gtk.Application):
         self.entry.grab_focus()
 
     def dismiss(self):
-        # Ignore any response to a cancelled lookup; no late clipboard changes.
+        # Cancel the backend and discard responses that have not begun copying.
+        self.cancel.set()
         self.generation += 1
         self.busy = False
         self.entry.set_editable(True)
@@ -136,12 +141,15 @@ class BibleSearch(Gtk.Application):
         self.error.set_visible(False)
         self.generation += 1
         token = self.generation
-        threading.Thread(target=self.fetch, args=(reference, token), daemon=True).start()
+        self.cancel = threading.Event()
+        threading.Thread(target=self.fetch, args=(reference, token, self.cancel), daemon=True).start()
 
-    def fetch(self, reference, token):
+    def fetch(self, reference, token, cancel):
         try:
-            passage = lookup(reference)
+            passage = lookup(reference, cancel=cancel)
             GLib.idle_add(self.fetched, token, passage, None)
+        except Cancelled:
+            return
         except LookupError as error:
             GLib.idle_add(self.fetched, token, None, str(error))
         except Exception:
@@ -159,13 +167,19 @@ class BibleSearch(Gtk.Application):
         return GLib.SOURCE_REMOVE
 
     def copy(self, token, passage):
-        if token != self.generation:
-            return
-        try:
-            copy_passage(passage)
-            error = None
-        except LookupError as exc:
-            error = str(exc)
+        # Once a Wayland clipboard transfer has begun, it cannot be undone safely.
+        # Serialize transfers so an older slow copy can never overwrite a newer one.
+        with self.clipboard_lock:
+            if token != self.generation:
+                return
+            try:
+                copy_passage(passage)
+                error = None
+            except LookupError as exc:
+                error = str(exc)
+            except Exception:
+                logging.exception('Unexpected clipboard failure')
+                error = 'Unable to copy passage'
         GLib.idle_add(self.finish, token, error)
 
     def finish(self, token, error):

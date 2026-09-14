@@ -38,7 +38,7 @@ def session_environment():
 def edit_block(path, content):
     original = path.read_text() if path.exists() else ''
     updated = original
-    if START in original:
+    if START in original or END in original:
         if original.count(START) != 1 or original.count(END) != 1:
             raise RuntimeError(f'Invalid managed markers in {path}; refusing to edit')
         begin = original.index(START)
@@ -62,14 +62,48 @@ def edit_block(path, content):
     temp.replace(path)
 
 
-def reload_hypr():
+def reload_hypr(required=True):
     if os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):
         run(['hyprctl', 'reload'], stdout=subprocess.DEVNULL)
         result = run(['hyprctl', 'configerrors'], capture_output=True, text=True)
         if result.stdout.strip():
             raise RuntimeError('Hyprland config errors: ' + result.stdout)
-    else:
+    elif required:
         raise RuntimeError('No active Hyprland session; log in and rerun installation to verify integration')
+    else:
+        print('No active Hyprland session; changes apply at next login.')
+
+
+def update_integration(changes, required=True):
+    """Restore both user files if an edit or compositor validation fails."""
+    originals = {path: path.read_bytes() if path.exists() else None for path in changes}
+    try:
+        for path, content in changes.items():
+            edit_block(path, content)
+        reload_hypr(required=required)
+    except Exception:
+        for path, original in originals.items():
+            if original is None:
+                path.unlink(missing_ok=True)
+            elif not path.exists() or path.read_bytes() != original:
+                path.write_bytes(original)
+        try:
+            reload_hypr(required=False)
+        except Exception as error:
+            print(f'Original Lua files restored; reload reported: {error}', file=sys.stderr)
+        raise
+
+
+def copy_application(target):
+    # The installed scripts remain usable after the original checkout is removed.
+    if ROOT.resolve() == target.resolve():
+        return
+    target.mkdir(parents=True, exist_ok=True)
+    for name in ('src', 'scripts', 'third_party', 'assets'):
+        shutil.copytree(ROOT / name, target / name, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns('__pycache__'))
+    for name in ('README.md', 'LICENSE', 'pyproject.toml'):
+        shutil.copy2(ROOT / name, target / name)
 
 
 def dependencies():
@@ -142,9 +176,7 @@ def main():
     if args.action == 'uninstall':
         if executable.exists():
             run([str(executable), '--quit'])
-        edit_block(bindings, '')
-        edit_block(autostart, '')
-        reload_hypr()
+        update_integration({bindings: '', autostart: ''}, required=False)
         executable.unlink(missing_ok=True)
         if target.exists():
             shutil.rmtree(target)
@@ -155,6 +187,8 @@ def main():
         raise RuntimeError('Expected Omarchy Lua bindings.lua and autostart.lua; refusing to guess')
     if args.bible and (not args.bible.is_file() or not os.access(args.bible, os.X_OK)):
         raise RuntimeError('--bible must point to an executable script')
+    # Validate the current session before changing an installation or user files.
+    reload_hypr()
     configure_backend(target, args.bible)
     config = read_config()
     passage = lookup('John 3:16')
@@ -170,26 +204,21 @@ def main():
             if result.returncode:
                 break
             time.sleep(.1)
-    target.mkdir(parents=True, exist_ok=True)
-    for name in ('src', 'scripts', 'third_party', 'assets'):
-        shutil.copytree(ROOT / name, target / name, dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns('__pycache__'))
-    for name in ('README.md', 'LICENSE', 'pyproject.toml'):
-        shutil.copy2(ROOT / name, target / name)
+    copy_application(target)
     executable.parent.mkdir(parents=True, exist_ok=True)
     executable.write_text('#!/usr/bin/python\nimport sys\nsys.path.insert(0, ' + repr(str(target / 'src')) +
                           ')\nfrom bible_search.app import main\nraise SystemExit(main())\n')
     executable.chmod(0o755)
     command = shlex.quote(str(executable))
-    edit_block(bindings,
+    binding_content = (
         'hl.unbind("ALT + SPACE")\n' +
-        'o.bind("ALT + SPACE", "Bible Search", ' + json.dumps(command + ' --show') + ')\n' +
+        'o.bind("ALT + SPACE", "Bible Search", ' + json.dumps(command + ' --show', ensure_ascii=False) + ')\n' +
         'o.window("^io\\\\.github\\\\.bible_search\\\\.Launcher$", {\n'
         '  float = true, center = true, border_size = 0, rounding = 14,\n'
         '  no_anim = true, decorate = false, opacity = "1.0 override 1.0 override",\n'
         '})')
-    edit_block(autostart, 'o.launch_on_start(' + json.dumps(command + ' --daemon') + ')')
-    reload_hypr()
+    startup_content = 'o.launch_on_start(' + json.dumps(command + ' --daemon', ensure_ascii=False) + ')'
+    update_integration({bindings: binding_content, autostart: startup_content})
     state = xdg_path('XDG_STATE_HOME', '.local/state') / 'bible-search'
     state.mkdir(parents=True, exist_ok=True)
     with (state / 'session.log').open('ab') as log:

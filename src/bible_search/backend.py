@@ -2,6 +2,7 @@
 import logging
 import subprocess
 from .config import read_config
+from .process import run_backend
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ def build_command(reference, config):
     return args + ['--', reference]
 
 
-def lookup(reference):
+def lookup(reference, cancel=None):
     try:
         config = read_config()
     except ValueError as error:
@@ -30,7 +31,7 @@ def lookup(reference):
     log.info('Lookup: translation=%s verse_numbers=%s ascii=%s backend=%s',
              config.translation, config.verse_numbers, config.ascii, config.bible_command)
     try:
-        result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+        result = run_backend(args, cancel=cancel)
     except subprocess.TimeoutExpired as error:
         log.warning('Backend timed out')
         raise LookupError('Unable to reach BibleGateway') from error
