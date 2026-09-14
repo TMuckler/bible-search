@@ -13,7 +13,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from bible_search.config import config_path, ensure_config, read_config, xdg_path
+from bible_search.config import config_path, discover_backend, ensure_config, read_config, xdg_path
 from bible_search.backend import lookup
 
 START = '-- BEGIN Bible Search (managed)'
@@ -89,6 +89,45 @@ def dependencies():
         raise RuntimeError('This installer requires Omarchy/Hyprland')
 
 
+
+def setup_bundled_backend(target):
+    """Install only our bundled copy and private dependencies; never touch ~/bin/bible."""
+    vendor = target / 'third_party/bible-fetch'
+    vendor.parent.mkdir(parents=True, exist_ok=True)
+    if (ROOT / 'third_party/bible-fetch').resolve() != vendor.resolve():
+        shutil.copytree(ROOT / 'third_party/bible-fetch', vendor, dirs_exist_ok=True)
+    environment = target / 'backend-venv'
+    python = environment / 'bin/python'
+    if not python.exists():
+        run(['/usr/bin/python', '-m', 'venv', str(environment)])
+    check = subprocess.run([str(python), '-c', 'import bs4, requests, unidecode'], capture_output=True)
+    if check.returncode:
+        run([str(python), '-m', 'pip', 'install', 'beautifulsoup4', 'requests', 'Unidecode'])
+    wrapper = target / 'backend/bible'
+    wrapper.parent.mkdir(parents=True, exist_ok=True)
+    wrapper.write_text('#!/bin/sh\nexec ' + shlex.quote(str(python)) + ' ' +
+                       shlex.quote(str(vendor / 'bible')) + ' "$@"\n')
+    wrapper.chmod(0o755)
+    return str(wrapper)
+
+
+def configure_backend(target, explicit=None):
+    managed = target / 'backend/bible'
+    if config_path().exists():
+        # Restore a retained managed config after an uninstall, and refresh dependencies.
+        if Path(read_config().bible_command) == managed:
+            setup_bundled_backend(target)
+        return
+    if explicit:
+        command = str(explicit.resolve())
+    else:
+        try:
+            command = discover_backend()
+        except ValueError:
+            command = setup_bundled_backend(target)
+    ensure_config(command)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['install', 'uninstall'])
@@ -116,7 +155,7 @@ def main():
         raise RuntimeError('Expected Omarchy Lua bindings.lua and autostart.lua; refusing to guess')
     if args.bible and (not args.bible.is_file() or not os.access(args.bible, os.X_OK)):
         raise RuntimeError('--bible must point to an executable script')
-    ensure_config(str(args.bible.resolve()) if args.bible else None)
+    configure_backend(target, args.bible)
     config = read_config()
     passage = lookup('John 3:16')
     print(f'Backend verified: {config.bible_command} ({config.translation}, {len(passage)} bytes)')
@@ -132,7 +171,7 @@ def main():
                 break
             time.sleep(.1)
     target.mkdir(parents=True, exist_ok=True)
-    for name in ('src', 'scripts'):
+    for name in ('src', 'scripts', 'third_party', 'assets'):
         shutil.copytree(ROOT / name, target / name, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns('__pycache__'))
     for name in ('README.md', 'LICENSE', 'pyproject.toml'):

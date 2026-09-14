@@ -8,6 +8,10 @@ The passage goes directly to your clipboard. The window disappears and clears
 its input. No results, previews, history, or success popups. The resident process
 keeps GTK ready between searches; Gio/D-Bus ensures a single instance.
 
+![Bible Search native launcher showing the John 3:16 placeholder](assets/screenshot.png)
+
+The actual native launcher; fetched passages go directly to the clipboard.
+
 ## Install from GitHub
 
 Designed for **Omarchy with Hyprland's Lua configuration** (tested on Omarchy
@@ -15,55 +19,33 @@ Designed for **Omarchy with Hyprland's Lua configuration** (tested on Omarchy
 Python/GTK4 application, not a web app or Electron application. An internet
 connection is required for passage lookups.
 
-### 1. Set up the Bible backend
-
-Already have a working `bible` script? Keep it and skip to step 2.
-
-Bible Search uses [bible-fetch](https://github.com/covode/bible-fetch) as a
-separate backend. For a fresh setup, install it in a Python virtual environment:
-
-```bash
-# Install git if needed: sudo pacman -S --needed git
-mkdir -p "$HOME/.local/share/venvs" "$HOME/.local/bin"
-git clone https://github.com/covode/bible-fetch.git "$HOME/.local/share/bible-fetch"
-python -m venv "$HOME/.local/share/venvs/bible"
-"$HOME/.local/share/venvs/bible/bin/python" -m pip install beautifulsoup4 requests Unidecode
-```
-
-Create this small wrapper **only if you do not already have `~/.local/bin/bible`**:
-
-```bash
-# noclobber protects an existing script from accidental replacement.
-(set -o noclobber; cat > "$HOME/.local/bin/bible" <<'SH'
-#!/usr/bin/env bash
-exec "$HOME/.local/share/venvs/bible/bin/python" "$HOME/.local/share/bible-fetch/bible" "$@"
-SH
-)
-chmod +x "$HOME/.local/bin/bible"
-"$HOME/.local/bin/bible" --version CSB --ascii -- 'John 1:1'
-```
-
-This leaves the upstream scraper unchanged and keeps its Python dependencies
-separate from Arch's system Python.
-
-### 2. Clone and install Bible Search
-
 ```bash
 git clone https://github.com/TMuckler/bible-search.git
 cd bible-search
 ./scripts/install.sh
 ```
 
-If your backend is elsewhere, supply its executable path instead:
+The repository includes the [original Bible Python script](third_party/bible-fetch/bible)
+and its [license](third_party/bible-fetch/LICENSE). No separate backend download
+or manual Python setup is required.
+
+The installer keeps an existing configured backend or discovers `bible` on PATH,
+in `~/.local/bin`, or in the current directory. If none exists, it installs the
+bundled script with a private virtual environment containing Beautiful Soup,
+Requests, and Unidecode. This managed backend lives in
+`~/.local/share/bible-search/backend/bible` (respecting `XDG_DATA_HOME`) and its
+path is written into config.toml. An existing `bible` script is never overwritten.
+
+To select a different existing backend when creating the configuration:
 
 ```bash
 ./scripts/install.sh --bible /absolute/path/to/bible
 ```
 
-Requires Python 3.11+, `python-gobject`, `gtk4`, `wl-clipboard`, and your working
-executable `bible` script with its existing Python environment. The installer
+Requires Python 3.11+, `python-gobject`, `gtk4`, and `wl-clipboard`. The installer
 reports missing Arch packages and invokes pacman with sudo (interactive terminal)
-or pkexec (graphical authorization). It does not change the backend.
+or pkexec (graphical authorization). Bundled backend dependencies are installed
+with pip into a user-owned virtual environment, without sudo.
 
 Installs into `$XDG_DATA_HOME/bible-search` (default `~/.local/share/bible-search`)
 with an executable at `~/.local/bin/bible-search`. It backs up user Lua files before
@@ -182,7 +164,10 @@ No packaged Omarchy files are modified. Backups have `.bak.bible-search.*` suffi
 
 Stops the resident process, removes the executable/application and only the marked
 Lua blocks, then reloads Hyprland. Your original `bible` script, TOML config, logs,
-and backups are retained. Remove the Bible Search config manually if desired.
+and backups are retained. A backend installed by Bible Search and its private
+virtual environment are removed with the application; external backends remain
+untouched. Reinstalling restores the managed backend if your retained config
+points to it. Remove the Bible Search config manually if desired.
 
 ## Tests
 
@@ -212,8 +197,9 @@ BibleGateway retrieval code that makes this launcher possible.
   for subsequent improvements.
 
 Bible Search adds the native launcher, Omarchy integration, configuration,
-citation formatting, and clipboard workflow. The upstream script is installed
-separately; this repository does not claim authorship of or bundle that script.
+citation formatting, and clipboard workflow. An unmodified copy of the original
+script and its copyright notice are included under [third_party/bible-fetch](third_party/bible-fetch).
+The pinned source revision and provenance are documented there.
 
 Bible Search is maintained by [TMuckler](https://github.com/TMuckler) and released
 under the [MIT License](LICENSE). Bible-fetch has its own MIT-style license.
