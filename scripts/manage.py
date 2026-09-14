@@ -102,7 +102,7 @@ def copy_application(target):
     for name in ('src', 'scripts', 'third_party', 'assets'):
         shutil.copytree(ROOT / name, target / name, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns('__pycache__'))
-    for name in ('README.md', 'LICENSE', 'pyproject.toml'):
+    for name in ('README.md', 'CHANGELOG.md', 'LICENSE', 'pyproject.toml'):
         shutil.copy2(ROOT / name, target / name)
 
 

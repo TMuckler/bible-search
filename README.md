@@ -12,6 +12,8 @@ keeps GTK ready between searches; Gio/D-Bus ensures a single instance.
 
 The actual native launcher; fetched passages go directly to the clipboard.
 
+See [CHANGELOG.md](CHANGELOG.md) for release history and fixes.
+
 ## Install from GitHub
 
 Designed for **Omarchy with Hyprland's Lua configuration** (tested on Omarchy
