@@ -14,12 +14,44 @@ The actual native launcher; fetched passages go directly to the clipboard.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and fixes.
 
-## Install from GitHub
+## Install a release
 
 Designed for **Omarchy with Hyprland's Lua configuration** (tested on Omarchy
-4.0.3). Run installation from your logged-in desktop session. This is a native
-Python/GTK4 application, not a web app or Electron application. An internet
-connection is required for passage lookups.
+4.0.3). Run installation from your logged-in desktop session. Python 3.11+,
+`curl`, `tar`, and `sha256sum` are needed. An internet connection is required.
+
+### Quick install
+
+```bash
+curl -fsSL https://github.com/TMuckler/bible-search/releases/download/v1.0.1/install.sh | bash
+```
+
+This downloads the fixed **v1.0.1** package over HTTPS, verifies its SHA-256
+checksum, and runs the installer. It uses a temporary directory and cleans up
+afterward. It does not require Git. To provide a backend path, append arguments:
+
+```bash
+curl -fsSL https://github.com/TMuckler/bible-search/releases/download/v1.0.1/install.sh | bash -s -- --bible /absolute/path/to/bible
+```
+
+### Download and install manually
+
+Download `bible-search-1.0.1.tar.gz` and `SHA256SUMS` from the
+[v1.0.1 release](https://github.com/TMuckler/bible-search/releases/tag/v1.0.1)
+into the same directory, then run:
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS
+tar -xzf bible-search-1.0.1.tar.gz
+cd bible-search-1.0.1
+./scripts/install.sh
+```
+
+Check that the archive reports `OK` before extracting it. The release contains
+Python source and the native installer; GTK and other system dependencies are
+provided by Arch packages rather than bundled binaries.
+
+### Install the development checkout
 
 ```bash
 git clone https://github.com/TMuckler/bible-search.git
@@ -210,3 +242,17 @@ Bible Search is maintained by [TMuckler](https://github.com/TMuckler) and releas
 under the [MIT License](LICENSE). Bible-fetch has its own MIT-style license.
 Scripture text is retrieved from [BibleGateway](https://www.biblegateway.com/);
 the application license does not license the Bible translations themselves.
+
+## Publishing a release
+
+Update the version in `pyproject.toml`, `src/bible_search/__init__.py`, and
+`scripts/download-install.sh`; update the README download URLs and add a dated
+changelog section. Commit those changes. Run the tests, then build locally with:
+
+```bash
+python3 scripts/build_release.py --tag v1.0.1
+```
+
+The build requires a clean checkout and packages only committed files. Push a
+matching version tag to trigger the GitHub workflow. It runs the regression tests
+before publishing the archive, download installer, checksums, and release notes.

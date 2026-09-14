@@ -1,3 +1,9 @@
+# Release packaging checks
+
+26 regression tests pass, including verified download, corrupt archive rejection,
+missing checksum rejection, failed download rejection, argument forwarding, and
+temporary-directory cleanup. Tagged GitHub releases run the suite before publishing.
+
 # Bug review follow-up
 
 22 tests pass. New coverage verifies running backend cancellation and process

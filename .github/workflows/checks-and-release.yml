@@ -1,0 +1,44 @@
+name: Tests and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-gtk-4.0
+      - name: Run regression tests
+        run: PYTHONPATH=src /usr/bin/python3 -m unittest discover -s tests -v
+      - name: Check shell scripts
+        run: bash -n scripts/install.sh scripts/uninstall.sh scripts/download-install.sh
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: /usr/bin/python3 scripts/build_release.py --tag "$RELEASE_TAG"
+      - name: Publish tested assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/bible-search-*.tar.gz dist/install.sh dist/SHA256SUMS \
+            --verify-tag --title "Bible Search $RELEASE_TAG" --notes-file dist/release-notes.md

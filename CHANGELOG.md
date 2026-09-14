@@ -1,11 +1,18 @@
 # Changelog
 
-User-visible changes to Bible Search are recorded here. Changes after the initial
-1.0.0 publication remain under **Unreleased** until the next version is published.
+User-visible changes to Bible Search are recorded here.
 
 ## Unreleased
 
+No changes yet.
+
+## 1.0.1 — 2026-09-14
+
 ### Added
+
+- Publish a versioned download package and SHA-256 checksums.
+- Add a short download installer that verifies the archive before running setup.
+- Automatically test commits and publish tagged releases only after tests pass.
 
 - Bundle the original `bible-fetch` Python script, its MIT-style license, and
   source provenance, crediting Erik J. Sturcke and subsequent contributors.
@@ -13,7 +20,7 @@ User-visible changes to Bible Search are recorded here. Changes after the initia
   no existing `bible` executable is found. Preserve existing backend installations.
 - Include an actual launcher screenshot in the README.
 - Add regression tests for cancellation, clipboard ordering, configuration
-  errors, and installer recovery; the suite now contains 22 tests.
+  errors, and installer recovery; the suite now contains 26 tests.
 - Include this changelog in the repository and user installation.
 
 ### Fixed
