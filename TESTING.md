@@ -29,6 +29,12 @@ treated as CI-validated.
 - The live configuration and clipboard SHA-256 values matched before and after
   the final launcher test. The test now detaches the restoring `wl-copy` owner so
   automation cleanup cannot discard the restored selection.
+- The committed source archive passed the same 47-test suite after extraction.
+  Its SHA256SUMS verified both the archive and download installer, contained no
+  nested `dist` directory, and retained the publisher's executable mode.
+- The packaged download installer passed with a local release fixture: curl
+  download, checksum selection and validation, extraction, installation, resident
+  startup, temporary-directory cleanup, and offline uninstall all ran end to end.
 - The v1.0.1 workflow was rerun and GitHub again rejected the test job before its
   first step because the account remains locked for billing. The release job was
   skipped. Existing v1.0.1 release assets still match the local tag build hashes.
