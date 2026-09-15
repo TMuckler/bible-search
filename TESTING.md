@@ -1,8 +1,41 @@
 # Release packaging checks
 
-26 regression tests pass, including verified download, corrupt archive rejection,
-missing checksum rejection, failed download rejection, argument forwarding, and
-temporary-directory cleanup. Tagged GitHub releases run the suite before publishing.
+The v1.0.2 regression suite covers verified downloads, corrupt and missing
+checksums, complete installation transactions and rollback filesystems, damaged
+launcher recovery, exact resident process matching, real managed Python
+environment repairs, and real backend process-tree cleanup during `--quit` and
+SIGTERM. Tagged GitHub releases run the suite before publishing; reruns do not
+overwrite existing assets.
+
+The v1.0.1 tag workflow did not run its test steps because GitHub reported an
+account billing lock. Its separately published release therefore must not be
+treated as CI-validated.
+
+# v1.0.2 validation — 2026-09-15
+
+- All 47 regression tests passed with Arch's native Python 3.14, GTK 4.22, and
+  PyGObject. The shutdown cases used isolated D-Bus sessions and real backend
+  parent/child processes; no process-control calls were mocked.
+- A disposable home and D-Bus session passed clean install, reinstall from the
+  installed directory, repair after removing the importable application package,
+  uninstall with desktop variables disabled, and reinstall with byte-identical
+  retained configuration. It connected to the real Wayland and Hyprland endpoints,
+  but its disposable Lua files were not part of the live compositor configuration.
+- The candidate was installed into the live account. The keyboard-driven suite
+  passed seven passage shapes, exact citations and clipboard bytes, live CSB to
+  ESV configuration reload, failure recovery, Escape, focus loss, native Wayland
+  window checks, repeated Alt+Space toggling with one PID, and exactly one live
+  managed Alt+Space binding. Hyprland reported no configuration errors.
+- The live configuration and clipboard SHA-256 values matched before and after
+  the final launcher test. The test now detaches the restoring `wl-copy` owner so
+  automation cleanup cannot discard the restored selection.
+- The v1.0.1 workflow was rerun and GitHub again rejected the test job before its
+  first step because the account remains locked for billing. The release job was
+  skipped. Existing v1.0.1 release assets still match the local tag build hashes.
+
+A fresh login was not performed because it would terminate the active desktop
+session. Login autostart remains verified from configuration and existing-session
+startup, rather than a new Hyprland login.
 
 # Bug review follow-up
 

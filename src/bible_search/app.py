@@ -5,6 +5,7 @@ import os
 import signal
 import sys
 import threading
+import time
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -14,9 +15,10 @@ from gi.repository import Gdk, Gio, GLib, Gtk
 from .backend import LookupError, lookup
 from .clipboard import copy_passage
 from .config import xdg_path
-from .process import Cancelled
+from .process import Cancelled, terminate_owned_processes
 
-APP_ID = 'io.github.bible_search.Launcher'
+APP_ID = os.environ.get('BIBLE_SEARCH_APP_ID', 'io.github.bible_search.Launcher')
+SHUTDOWN_TIMEOUT = 6
 
 
 class BibleSearch(Gtk.Application):
@@ -28,6 +30,10 @@ class BibleSearch(Gtk.Application):
         self.had_focus = False
         self.cancel = threading.Event()
         self.clipboard_lock = threading.Lock()
+        self.worker_lock = threading.Lock()
+        self.workers = set()
+        self.worker_cancels = set()
+        self.stopping = False
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -37,10 +43,59 @@ class BibleSearch(Gtk.Application):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, self.stop)
 
     def stop(self):
+        if self.stopping:
+            return GLib.SOURCE_REMOVE
+        self.stopping = True
         self.cancel.set()
+        with self.worker_lock:
+            for cancel in self.worker_cancels:
+                cancel.set()
         self.generation += 1
+        terminate_owned_processes()
+        threading.Thread(target=self.wait_for_workers, daemon=True).start()
+        return GLib.SOURCE_REMOVE
+
+    def wait_for_workers(self):
+        deadline = time.monotonic() + SHUTDOWN_TIMEOUT
+        while True:
+            terminate_owned_processes()
+            with self.worker_lock:
+                workers = tuple(self.workers)
+            if not workers:
+                break
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                logging.error('Timed out waiting for %d worker(s) during shutdown', len(workers))
+                break
+            for worker in workers:
+                worker.join(min(.1, remaining))
+        terminate_owned_processes()
+        GLib.idle_add(self.complete_stop)
+
+    def complete_stop(self):
         self.quit()
         return GLib.SOURCE_REMOVE
+
+    def start_worker(self, target, *args, cancel=None):
+        def work():
+            try:
+                target(*args)
+            finally:
+                with self.worker_lock:
+                    self.workers.discard(threading.current_thread())
+                    if cancel is not None:
+                        self.worker_cancels.discard(cancel)
+        worker = threading.Thread(target=work, daemon=True)
+        with self.worker_lock:
+            if self.stopping:
+                if cancel is not None:
+                    cancel.set()
+                return None
+            self.workers.add(worker)
+            if cancel is not None:
+                self.worker_cancels.add(cancel)
+        worker.start()
+        return worker
 
     def do_command_line(self, command_line):
         args = command_line.get_arguments()[1:]
@@ -96,6 +151,8 @@ class BibleSearch(Gtk.Application):
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
     def show_launcher(self):
+        if self.stopping:
+            return
         if self.window.get_visible():
             self.dismiss()
             return
@@ -131,7 +188,7 @@ class BibleSearch(Gtk.Application):
             self.dismiss()
 
     def submit(self, *_):
-        if self.busy:
+        if self.busy or self.stopping:
             return
         reference = self.entry.get_text().strip()
         if not reference:
@@ -142,7 +199,7 @@ class BibleSearch(Gtk.Application):
         self.generation += 1
         token = self.generation
         self.cancel = threading.Event()
-        threading.Thread(target=self.fetch, args=(reference, token, self.cancel), daemon=True).start()
+        self.start_worker(self.fetch, reference, token, self.cancel, cancel=self.cancel)
 
     def fetch(self, reference, token, cancel):
         try:
@@ -163,7 +220,7 @@ class BibleSearch(Gtk.Application):
             self.finish(token, error)
         else:
             # Clipboard subprocess runs off the GTK thread as well.
-            threading.Thread(target=self.copy, args=(token, passage), daemon=True).start()
+            self.start_worker(self.copy, token, passage)
         return GLib.SOURCE_REMOVE
 
     def copy(self, token, passage):

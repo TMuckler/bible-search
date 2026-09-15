@@ -6,6 +6,34 @@ User-visible changes to Bible Search are recorded here.
 
 No changes yet.
 
+## 1.0.2 — 2026-09-15
+
+### Fixed
+
+- Repair and uninstall damaged installations without invoking the possibly broken
+  installed launcher. Process detection matches only the exact managed launcher,
+  treats an absent resident as normal, and reports a resident that will not stop.
+- Validate the managed Python interpreter, pip, and Beautiful Soup, Requests, and
+  Unidecode imports. Rebuild incomplete environments through an atomic staged swap.
+- Track all lookup and clipboard workers during shutdown. `--quit` and SIGTERM
+  cancel current and recently replaced requests, terminate their process groups,
+  reap adopted descendants, and wait for bounded cleanup without blocking GTK.
+- Stage and validate complete application updates before stopping the prior
+  resident. Roll back the application, launcher, configuration, and Lua integration
+  after copy, integration, or daemon-start failures, and restart a prior resident.
+- Preserve external backends, retained configuration, and user-created top-level
+  files through repair, rollback, uninstall, and reinstall.
+
+### Release reliability
+
+- Exercise transaction outcomes and resulting filesystems, real temporary Python
+  environments, and real subprocess trees for `--quit` and SIGTERM regressions.
+- Make release reruns verify existing assets, upload only missing assets, and fail
+  rather than overwrite differing files. Publishing remains dependent on tests.
+- Record that the v1.0.1 tag workflow did not execute tests because GitHub blocked
+  its test job for an account billing issue; that release was published separately
+  and has no evidence of CI validation.
+
 ## 1.0.1 — 2026-09-14
 
 ### Added

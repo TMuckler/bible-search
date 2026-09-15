@@ -17,7 +17,7 @@ jobs:
       - name: Install native test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-gi gir1.2-gtk-4.0
+          sudo apt-get install -y python3-gi python3-venv gir1.2-gtk-4.0 dbus
       - name: Run regression tests
         run: PYTHONPATH=src /usr/bin/python3 -m unittest discover -s tests -v
       - name: Check shell scripts
@@ -39,6 +39,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          gh release create "$RELEASE_TAG" dist/bible-search-*.tar.gz dist/install.sh dist/SHA256SUMS \
-            --verify-tag --title "Bible Search $RELEASE_TAG" --notes-file dist/release-notes.md
+        run: scripts/publish_release.sh

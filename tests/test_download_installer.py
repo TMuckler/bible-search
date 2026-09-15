@@ -17,10 +17,10 @@ class DownloadInstallerTests(unittest.TestCase):
             root = Path(directory)
             fixture = root / 'fixture'
             fixture.mkdir()
-            archive = fixture / 'bible-search-1.0.1.tar.gz'
+            archive = fixture / 'bible-search-1.0.2.tar.gz'
             installer = b'#!/bin/bash\nprintf "%s\\n" "$@" > "$INSTALL_MARKER"\n'
             with tarfile.open(archive, 'w:gz') as output:
-                member = tarfile.TarInfo('bible-search-1.0.1/scripts/install.sh')
+                member = tarfile.TarInfo('bible-search-1.0.2/scripts/install.sh')
                 member.size = len(installer)
                 member.mode = 0o755
                 output.addfile(member, io.BytesIO(installer))

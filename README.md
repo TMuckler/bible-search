@@ -23,27 +23,27 @@ Designed for **Omarchy with Hyprland's Lua configuration** (tested on Omarchy
 ### Quick install
 
 ```bash
-curl -fsSL https://github.com/TMuckler/bible-search/releases/download/v1.0.1/install.sh | bash
+curl -fsSL https://github.com/TMuckler/bible-search/releases/download/v1.0.2/install.sh | bash
 ```
 
-This downloads the fixed **v1.0.1** package over HTTPS, verifies its SHA-256
+This downloads the fixed **v1.0.2** package over HTTPS, verifies its SHA-256
 checksum, and runs the installer. It uses a temporary directory and cleans up
 afterward. It does not require Git. To provide a backend path, append arguments:
 
 ```bash
-curl -fsSL https://github.com/TMuckler/bible-search/releases/download/v1.0.1/install.sh | bash -s -- --bible /absolute/path/to/bible
+curl -fsSL https://github.com/TMuckler/bible-search/releases/download/v1.0.2/install.sh | bash -s -- --bible /absolute/path/to/bible
 ```
 
 ### Download and install manually
 
-Download `bible-search-1.0.1.tar.gz` and `SHA256SUMS` from the
-[v1.0.1 release](https://github.com/TMuckler/bible-search/releases/tag/v1.0.1)
+Download `bible-search-1.0.2.tar.gz` and `SHA256SUMS` from the
+[v1.0.2 release](https://github.com/TMuckler/bible-search/releases/tag/v1.0.2)
 into the same directory, then run:
 
 ```bash
 sha256sum --check --ignore-missing SHA256SUMS
-tar -xzf bible-search-1.0.1.tar.gz
-cd bible-search-1.0.1
+tar -xzf bible-search-1.0.2.tar.gz
+cd bible-search-1.0.2
 ./scripts/install.sh
 ```
 
@@ -69,6 +69,9 @@ bundled script with a private virtual environment containing Beautiful Soup,
 Requests, and Unidecode. This managed backend lives in
 `~/.local/share/bible-search/backend/bible` (respecting `XDG_DATA_HOME`) and its
 path is written into config.toml. An existing `bible` script is never overwritten.
+The installer checks the private interpreter, pip, and all required imports on
+every managed-backend setup. An incomplete or unusable private environment is
+rebuilt in a staging directory and swapped in only after it passes those checks.
 
 To select a different existing backend when creating the configuration:
 
@@ -88,6 +91,16 @@ to avoid duplicates, configures Alt+Space and login
 autostart, reloads and validates Hyprland, checks the backend and clipboard
 connection, and starts/verifies the resident process. Re-running preserves your
 TOML configuration. `--bible` applies only when creating a new configuration.
+
+Updates are transactional. The replacement application and managed backend are
+staged and validated before the existing resident stops. A failed copy,
+integration check, or daemon start restores the prior application, launcher,
+Lua files, and configuration, then restarts the prior resident when it had been
+running. A failed first install removes the files and managed Lua edits created
+by that attempt. User-created top-level files inside the application directory
+are carried forward. Repair and uninstall find the exact managed process without
+running the installed launcher, so missing application files or broken imports
+do not block recovery.
 
 ## Clipboard output
 
@@ -205,6 +218,10 @@ and backups are retained. A backend installed by Bible Search and its private
 virtual environment are removed with the application; external backends remain
 untouched. Reinstalling restores the managed backend if your retained config
 points to it. Remove the Bible Search config manually if desired.
+Uninstall also works without an active desktop session. An absent resident is
+normal; if an exact managed resident ignores SIGTERM, uninstall reports that
+shutdown failure and leaves the installation in place instead of killing another
+process or deleting files underneath it.
 
 ## Tests
 
@@ -250,9 +267,11 @@ Update the version in `pyproject.toml`, `src/bible_search/__init__.py`, and
 changelog section. Commit those changes. Run the tests, then build locally with:
 
 ```bash
-python3 scripts/build_release.py --tag v1.0.1
+python3 scripts/build_release.py --tag v1.0.2
 ```
 
 The build requires a clean checkout and packages only committed files. Push a
 matching version tag to trigger the GitHub workflow. It runs the regression tests
 before publishing the archive, download installer, checksums, and release notes.
+Rerunning a tag workflow verifies any existing assets byte for byte, uploads only
+missing assets, and refuses to overwrite a differing asset or move a tag.

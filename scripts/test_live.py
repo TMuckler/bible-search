@@ -61,6 +61,19 @@ def clipboard():
     return call('wl-paste', '--no-newline')
 
 
+def restore_clipboard(saved, mime):
+    if saved is None:
+        subprocess.run(['wl-copy', '--clear'], check=True, start_new_session=True)
+        return
+    # Detach the Wayland owner so automation runners do not reap it with this test.
+    subprocess.run(['wl-copy', '--type', mime], input=saved, check=True,
+                   start_new_session=True)
+    time.sleep(.15)
+    restored = call('wl-paste', '--no-newline', '--type', mime)
+    if restored != saved:
+        raise AssertionError('Failed to restore the pre-test clipboard exactly')
+
+
 def main():
     config = config_path()
     original = config.read_bytes()
@@ -142,10 +155,7 @@ def main():
         call('hyprctl', 'eval', 'hl.config({input = {resolve_binds_by_sym = ' + str(resolve).lower() + '}})')
         if windows():
             key('', 'Escape')
-        if saved is not None:
-            subprocess.run(['wl-copy', '--type', mime], input=saved, check=True)
-        else:
-            subprocess.run(['wl-copy', '--clear'], check=True)
+        restore_clipboard(saved, mime)
 
 
 if __name__ == '__main__':

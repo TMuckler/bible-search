@@ -2,7 +2,7 @@
 # Install the exact release this script ships with.
 set -euo pipefail
 
-version='1.0.1'
+version='1.0.2'
 archive="bible-search-${version}.tar.gz"
 release_url="https://github.com/TMuckler/bible-search/releases/download/v${version}"
 
