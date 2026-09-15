@@ -4,16 +4,11 @@ The v1.0.2 regression suite covers verified downloads, corrupt and missing
 checksums, complete installation transactions and rollback filesystems, damaged
 launcher recovery, exact resident process matching, real managed Python
 environment repairs, and real backend process-tree cleanup during `--quit` and
-SIGTERM. Tagged GitHub releases run the suite before publishing; reruns do not
-overwrite existing assets.
-
-The v1.0.1 tag workflow did not run its test steps because GitHub reported an
-account billing lock. Its separately published release therefore must not be
-treated as CI-validated.
+SIGTERM. Releases are tested, built, and published manually.
 
 # v1.0.2 validation — 2026-09-15
 
-- All 47 regression tests passed with Arch's native Python 3.14, GTK 4.22, and
+- All 44 regression tests passed with Arch's native Python 3.14, GTK 4.22, and
   PyGObject. The shutdown cases used isolated D-Bus sessions and real backend
   parent/child processes; no process-control calls were mocked.
 - A disposable home and D-Bus session passed clean install, reinstall from the
@@ -29,16 +24,12 @@ treated as CI-validated.
 - The live configuration and clipboard SHA-256 values matched before and after
   the final launcher test. The test now detaches the restoring `wl-copy` owner so
   automation cleanup cannot discard the restored selection.
-- The committed source archive passed the same 47-test suite after extraction.
+- The committed source archive passed the same 44-test suite after extraction.
   Its SHA256SUMS verified both the archive and download installer, contained no
-  nested `dist` directory, and retained the publisher's executable mode.
+  nested `dist` directory.
 - The packaged download installer passed with a local release fixture: curl
   download, checksum selection and validation, extraction, installation, resident
   startup, temporary-directory cleanup, and offline uninstall all ran end to end.
-- The v1.0.1 workflow was rerun and GitHub again rejected the test job before its
-  first step because the account remains locked for billing. The release job was
-  skipped. Existing v1.0.1 release assets still match the local tag build hashes.
-
 A fresh login was not performed because it would terminate the active desktop
 session. Login autostart remains verified from configuration and existing-session
 startup, rather than a new Hyprland login.

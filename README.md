@@ -262,16 +262,22 @@ the application license does not license the Bible translations themselves.
 
 ## Publishing a release
 
-Update the version in `pyproject.toml`, `src/bible_search/__init__.py`, and
-`scripts/download-install.sh`; update the README download URLs and add a dated
-changelog section. Commit those changes. Run the tests, then build locally with:
+Releases are built and published manually; this repository does not use GitHub
+Actions. Update the version in `pyproject.toml`, `src/bible_search/__init__.py`,
+and `scripts/download-install.sh`; update the README URLs and changelog. Commit
+the changes, run the tests locally, then build with:
 
 ```bash
 python3 scripts/build_release.py --tag v1.0.2
 ```
 
-The build requires a clean checkout and packages only committed files. Push a
-matching version tag to trigger the GitHub workflow. It runs the regression tests
-before publishing the archive, download installer, checksums, and release notes.
-Rerunning a tag workflow verifies any existing assets byte for byte, uploads only
-missing assets, and refuses to overwrite a differing asset or move a tag.
+The build requires a clean checkout and packages only committed files. Verify
+`dist/SHA256SUMS`, create and push the matching tag, then publish the files:
+
+```bash
+git tag v1.0.2
+git push origin main refs/tags/v1.0.2
+gh release create v1.0.2 dist/bible-search-1.0.2.tar.gz \
+  dist/install.sh dist/SHA256SUMS --verify-tag \
+  --title "Bible Search v1.0.2" --notes-file dist/release-notes.md
+```

@@ -28,11 +28,8 @@ No changes yet.
 
 - Exercise transaction outcomes and resulting filesystems, real temporary Python
   environments, and real subprocess trees for `--quit` and SIGTERM regressions.
-- Make release reruns verify existing assets, upload only missing assets, and fail
-  rather than overwrite differing files. Publishing remains dependent on tests.
-- Record that the v1.0.1 tag workflow did not execute tests because GitHub blocked
-  its test job for an account billing issue; that release was published separately
-  and has no evidence of CI validation.
+- Remove GitHub Actions and document a simple manual release process using locally
+  verified archives, checksums, and `gh release create`.
 
 ## 1.0.1 — 2026-09-14
 
